@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Dashboard.Server.Tcp;
-using LinqToWmi.Core.WMI;
-using System.Management;
-using WmiEntities;
-using System.Text.RegularExpressions;
-
 
 namespace Dashboard.Server
 {
@@ -26,33 +19,21 @@ namespace Dashboard.Server
 
         public override void OnAcceptConnection(ConnectionState state)
         {
-            log("Connection from {0}",state.RemoteEndPoint.ToString());
+            log("Connection from {0}", state.RemoteEndPoint.ToString());
+
             WriteLine(state, OHAI);
-            
-            using (WmiContext context = new WmiContext(@"\\."))
+
+            foreach (var s in Private.GetProcessData())
             {
-                context.ManagementScope.Options.Impersonation = ImpersonationLevel.Impersonate;
-         
-                foreach (var s in Private.GetProcessData(context))
-               {
-                    WriteLine(state, s);
-               }
+                WriteLine(state, s);
             }
-            
+
             WriteLine(state, KTHXBAI);
-            
+
             log("Data Sent to {0}", state.RemoteEndPoint.ToString());
 
             state.EndConnection();
         }
-
-        private bool WriteLine(ConnectionState state, string msg)
-        {
-            byte[] msgBytes = Encoding.ASCII.GetBytes(String.Format("{0}{1}", msg, Environment.NewLine));
-            return state.Write(msgBytes, 0, msgBytes.Length);
-        }
-
-
 
         public override void OnReceiveData(ConnectionState state)
         {
@@ -65,7 +46,12 @@ namespace Dashboard.Server
             log("Connnection closed {0}", state.RemoteEndPoint.ToString());
         }
 
-     
+        private bool WriteLine(ConnectionState state, string msg)
+        {
+            byte[] msgBytes = Encoding.ASCII.GetBytes(String.Format("{0}{1}", msg, Environment.NewLine));
+            return state.Write(msgBytes, 0, msgBytes.Length);
+        }
+
         private void log(string format, params object[] args)
         {
             if (Logger != null)
@@ -73,7 +59,6 @@ namespace Dashboard.Server
                 Logger.Log(format, args);
             }
         }
-        
     }
    
     public interface Logger

@@ -1,18 +1,12 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using Microsoft.SPOT;
-using Microsoft.SPOT.Hardware;
-using SecretLabs.NETMF.Hardware;
 using SecretLabs.NETMF.Hardware.NetduinoPlus;
 using System.IO;
 using System.Collections;
-using System.Diagnostics;
 using MFCommon.Hardware;
 using MFCommon.Network;
 
-using VikingErik.NetMF.MicroLinq;
 
 namespace Dashboard
 {
@@ -30,7 +24,7 @@ namespace Dashboard
         private static int DECAY_FACTOR = 10;
 
         private Hashtable outputs;
-        private static Led led= new Led(Pins.ONBOARD_LED, false, 20);
+        private static Led led = new Led(Pins.ONBOARD_LED, false, 20);
 
         public static void Main()
         {
