@@ -30,8 +30,7 @@ namespace Dashboard
         private static int DECAY_FACTOR = 10;
 
         private Hashtable outputs;
-        private static Led led = new Led(Pins.ONBOARD_LED, false);
-
+        private static Led led= new Led(Pins.ONBOARD_LED, false, 20);
 
         public static void Main()
         {
@@ -63,19 +62,22 @@ namespace Dashboard
         {
             Init();
 
-            led.Flash();
-            Stopwatch stopWatch = Stopwatch.StartNew();
+            Stopwatch stopWatch = new Stopwatch();
             while (true)
             {
-                led.Flash();
+                led.Flash(3);
                 FetchReadings();
 
-                stopWatch.Reset();
+                stopWatch.Start();                
                 while (stopWatch.ElapsedMilliseconds < POLL_PERIOD)
                 {
                     DoOutputDecay();
+                    led.Flash();
                     Thread.Sleep(SLEEP_PERIOD);
                 }
+                stopWatch.Reset();
+
+
                 Debug.Print("Memory: " + Debug.GC(false));
             }
         }
