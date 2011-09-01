@@ -1,0 +1,12 @@
+A Monitoring Dashboard
+
+Components
+==========
+1) Simple TCP Server Windows Service. C#
+Listens for incoming requests, runs some WMI, formats and returns results
+
+2) .net Micro Framework Client
+Runs on Netduino Plus. Makes request sends data to 1 of 12 SPI 'channels'
+
+3) Hardware. AD5206 SPI Digipot driving IN-13 (Nixie) Bargraphs. 
+
