@@ -8,6 +8,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Configuration;
 using Dashboard.Server.Tcp;
+using Dashboard.Server;
 
 namespace Dashboard.Service
 {
@@ -34,9 +35,8 @@ namespace Dashboard.Service
                 EventLog.CreateEventSource(logSource, logName);
             }
 
-            log = new EventLog();
-            log.Source = logSource;
-           
+            log = new EventLog { Source = logSource };
+                       
             int port;
             if (!int.TryParse(ConfigurationManager.AppSettings["ListenPort"], out port))
             {
@@ -44,7 +44,7 @@ namespace Dashboard.Service
             }
 
             Dashboard.Server.DashboardServiceProvider dashboardServiceProvider = new Dashboard.Server.DashboardServiceProvider();
-            dashboardServiceProvider.EventLog = log;
+            dashboardServiceProvider.Logger = new EventLogger { EventLog = log };
 
             server = new TcpServer(dashboardServiceProvider, port);
             server.Start();
@@ -64,5 +64,28 @@ namespace Dashboard.Service
             }
             log.WriteEntry("Server Stopped.");
         }
+    }
+
+
+    public class EventLogger : Logger
+    {
+        public EventLog EventLog { get; set; }
+
+        #region Logger Members
+
+        public void Log(string message)
+        {
+            if (EventLog != null)
+            {
+                EventLog.WriteEntry(message);
+            }
+        }
+
+        public void Log(string format, params object[] args)
+        {
+            Log(string.Format(format, args));
+        }
+
+        #endregion
     }
 }

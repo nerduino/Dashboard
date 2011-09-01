@@ -17,11 +17,11 @@ namespace Dashboard.Server
         private static string OHAI = "OHAI";
         private static string KTHXBAI = "KTHXBAI";
 
-        public System.Diagnostics.EventLog EventLog { get; set; }
+        public Logger Logger { get; set; }
 
         public override object Clone()
         {
-            return new DashboardServiceProvider();
+            return this;
         }
 
         public override void OnAcceptConnection(ConnectionState state)
@@ -40,9 +40,10 @@ namespace Dashboard.Server
             }
             
             WriteLine(state, KTHXBAI);
-            state.EndConnection();
+            
+            log("Data Sent to {0}", state.RemoteEndPoint.ToString());
 
-            log("Data Send to {0}", state.RemoteEndPoint.ToString());
+            state.EndConnection();
         }
 
         private bool WriteLine(ConnectionState state, string msg)
@@ -55,7 +56,7 @@ namespace Dashboard.Server
 
         public override void OnReceiveData(ConnectionState state)
         {
-            //Ignore.
+            //Do nothing.
         }
 
 
@@ -64,17 +65,20 @@ namespace Dashboard.Server
             log("Connnection closed {0}", state.RemoteEndPoint.ToString());
         }
 
-        
-      
-
+     
         private void log(string format, params object[] args)
         {
-            if (EventLog != null)
+            if (Logger != null)
             {
-                EventLog.WriteEntry(String.Format(format, args));
+                Logger.Log(format, args);
             }
         }
         
     }
    
+    public interface Logger
+    {
+        void Log(string message);
+        void Log(string format, params object[] args);
+    }
 }

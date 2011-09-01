@@ -114,11 +114,6 @@ namespace Dashboard.Server.Tcp
 
         public void EndConnection()
         {
-            if (_conn != null && _conn.Connected)
-            {
-                _conn.Shutdown(SocketShutdown.Both);
-                _conn.Close();
-            }
             _server.DropConnection(this);
         }
     }
@@ -370,8 +365,25 @@ namespace Dashboard.Server.Tcp
         {
             lock (this)
             {
-                st._conn.Shutdown(SocketShutdown.Both);
-                st._conn.Close();
+
+                try 
+                { 
+                    st._provider.OnDropConnection(st); 
+                }
+                catch
+                { }
+
+                try
+                {
+                    if (st._conn != null && st._conn.Connected)
+                    {
+                        st._conn.Shutdown(SocketShutdown.Both);
+                        st._conn.Close();
+                    }
+                }
+                catch
+                { }
+
                 if (_connections.Contains(st))
                     _connections.Remove(st);
             }
