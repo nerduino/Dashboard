@@ -6,6 +6,7 @@
 *.suo
 OnBoardFlash.dat
 DOTNETMF_FS_EMULATION/
+*.s#*
 
 #ignore thumbnails created by windows
 Thumbs.db
