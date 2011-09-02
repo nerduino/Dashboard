@@ -4,7 +4,8 @@
 *.ncb
 *.aps
 *.suo
-
+OnBoardFlash.dat
+DOTNETMF_FS_EMULATION/
 
 #ignore thumbnails created by windows
 Thumbs.db
