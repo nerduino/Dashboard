@@ -1,16 +1,51 @@
 ﻿using System;
 using System.Text;
 using Dashboard.Server.Tcp;
+using System.Collections.Generic;
 
 namespace Dashboard.Server
 {
+    public interface Logger
+    {
+        void Log(string message);
+        void Log(string format, params object[] args);
+    }
+
+    public interface ProviderDataSource
+    {
+        IEnumerable<string> GetData();
+    }
+
+
     public class DashboardServiceProvider : TcpServiceProvider
     {
 
-        private static string OHAI = "OHAI";
-        private static string KTHXBAI = "KTHXBAI";
-
+        protected static string OHAI = "OHAI";
+        protected static string KTHXBAI = "KTHXBAI";
+        
+        public ProviderDataSource DataSource { get; set; }
         public Logger Logger { get; set; }
+
+
+        public DashboardServiceProvider()
+            : base()
+        {
+            DataSource = new PrivateDataSource();
+        }
+
+        protected void log(string format, params object[] args)
+        {
+            if (Logger != null)
+            {
+                Logger.Log(format, args);
+            }
+        }
+
+        protected bool WriteLine(ConnectionState state, string msg)
+        {
+            byte[] msgBytes = Encoding.ASCII.GetBytes(String.Format("{0}{1}", msg, Environment.NewLine));
+            return state.Write(msgBytes, 0, msgBytes.Length);
+        }
 
         public override object Clone()
         {
@@ -22,12 +57,13 @@ namespace Dashboard.Server
             log("Connection from {0}", state.RemoteEndPoint.ToString());
 
             WriteLine(state, OHAI);
-
-            foreach (var s in Private.GetProcessData())
+            if (DataSource != null)
             {
-                WriteLine(state, s);
+                foreach (var s in DataSource.GetData())
+                {
+                    WriteLine(state, s);
+                }
             }
-
             WriteLine(state, KTHXBAI);
 
             log("Data Sent to {0}", state.RemoteEndPoint.ToString());
@@ -40,30 +76,9 @@ namespace Dashboard.Server
             //Do nothing.
         }
 
-
         public override void OnDropConnection(ConnectionState state)
         {
             log("Connnection closed {0}", state.RemoteEndPoint.ToString());
         }
-
-        private bool WriteLine(ConnectionState state, string msg)
-        {
-            byte[] msgBytes = Encoding.ASCII.GetBytes(String.Format("{0}{1}", msg, Environment.NewLine));
-            return state.Write(msgBytes, 0, msgBytes.Length);
-        }
-
-        private void log(string format, params object[] args)
-        {
-            if (Logger != null)
-            {
-                Logger.Log(format, args);
-            }
-        }
-    }
-   
-    public interface Logger
-    {
-        void Log(string message);
-        void Log(string format, params object[] args);
     }
 }
