@@ -8,6 +8,7 @@ OnBoardFlash.dat
 DOTNETMF_FS_EMULATION/
 *.s#*
 *.b#*
+*.l#*
 
 #ignore thumbnails created by windows
 Thumbs.db
