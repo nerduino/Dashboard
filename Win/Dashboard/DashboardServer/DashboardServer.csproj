@@ -92,7 +92,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DashboardServiceProvider.cs" />
+    <Compile Include="DashboardServer.cs" />
     <Compile Include="PrivateDataSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Prototypes\Win32_ComputerSystem.cs" />
@@ -103,7 +103,6 @@
     <Compile Include="Prototypes\Win32_Process.cs" />
     <Compile Include="Prototypes\Win32_Processor.cs" />
     <Compile Include="Prototypes\Win32_UserAccount.cs" />
-    <Compile Include="Tcp\TCP.cs" />
     <Compile Include="Webserver.cs" />
   </ItemGroup>
   <ItemGroup>

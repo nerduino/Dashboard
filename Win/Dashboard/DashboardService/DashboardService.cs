@@ -7,7 +7,6 @@ using System.Linq;
 using System.ServiceProcess;
 using System.Text;
 using System.Configuration;
-using Dashboard.Server.Tcp;
 using Dashboard.Server;
 
 namespace Dashboard.Service
@@ -16,7 +15,7 @@ namespace Dashboard.Service
     {
 
         private EventLog log;
-        private TcpServer server;
+        private DashboardServer server;
 
         public DashboardService()
         {
@@ -42,14 +41,13 @@ namespace Dashboard.Service
             {
                 port = 9999;
             }
+            
+            server = new DashboardServer(port, new PrivateDataSource());
+            server.Log = new EventLogger { EventLog = log };
 
-            Dashboard.Server.DashboardServiceProvider dashboardServiceProvider = new Dashboard.Server.DashboardServiceProvider();
-            dashboardServiceProvider.Logger = new EventLogger { EventLog = log };
-
-            server = new TcpServer(dashboardServiceProvider, port);
             server.Start();
 
-            log.WriteEntry(string.Format("Listening on port {0}.",port));
+            
         }
 
         protected override void OnStop()
@@ -65,7 +63,6 @@ namespace Dashboard.Service
             log.WriteEntry("Server Stopped.");
         }
     }
-
 
     public class EventLogger : Logger
     {

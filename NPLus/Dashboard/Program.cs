@@ -6,6 +6,7 @@ using System.IO;
 using System.Collections;
 using MFCommon.Hardware;
 using MFCommon.Network;
+using Komodex.NETMF.MicroTweet.HTTP;
 
 
 namespace Dashboard
@@ -13,14 +14,14 @@ namespace Dashboard
     public class Program
     {
 
-        private static string IP_ADDR = "ADDRESS_GOES_HERE";
+        //private static string URL = "ADDRESS_GOES_HERE";
+        private static string URL = "http://10.82.115.238:999/";
 
         private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
-        private static string OHAI = "OHAI";
-        private static string KTHXBAI = "KTHXBAI";
+
        
         private int POLL_PERIOD = 3000; 
-        private int SLEEP_PERIOD = 25;
+        private int SLEEP_PERIOD = 250;
         private static int DECAY_FACTOR = 10;
 
         private Hashtable outputs;
@@ -83,45 +84,32 @@ namespace Dashboard
             {
                 led.Flash(2);
 
-                using (StreamReader streamReader = NetworkUtils.Get(IP_ADDR, 9999, null))
-                {
-                    String line = streamReader.ReadLine();
-                    if (line.Equals(OHAI))
-                    {
-                        Begin(line);
-                    }
-                    else if (line.Equals(KTHXBAI))
-                    {
-                        End(line);
-                    }
-                    else
-                    {
-                        Data(line);
-                    }
+                HttpRequest httpRequest = new HttpRequest(new HttpUri(URL));
 
+                HttpResponse response = httpRequest.GetResponse();
+                Debug.Print(response.ResponseBody);
+
+                string[] lines = response.ResponseBody.Split('\n');
+                for (int i = 0; i < lines.Length; i += 1)
+                {
+                    ProcessData(lines[i].Trim());
                 }
             }
+
             catch (Exception e)
             {
                 Debug.Print("Exception: " + e.Message);
             }
         }
-        
-        private void Begin(string line)
-        {
 
-        }
-        private void End(string line)
-        {
-
-        }
-        private void Data(string line)
+        private void ProcessData(string line)
         {
             string server;
             int percent;
             int position;
 
-            string[] fields = line.Split(':');
+
+            string[] fields = line.Split(',');
             server = fields[0];
             percent = int.Parse(fields[1]);
             position = (percent * 255) / 100;
@@ -139,6 +127,7 @@ namespace Dashboard
             {
                 try
                 {
+                    Debug.Print("Update");
                     indicator.Update();
                 }
                 catch
@@ -152,16 +141,15 @@ namespace Dashboard
     class Indicator
     {
         private AD5206_Channel channel;
-        private int currentValue;
 
-        public int CurrentValue { get { return CurrentValue; } }
+        public int CurrentValue { get; private set; }
         public int TargetValue { get; set; }
         private int DecayFactor { get; set; }
 
         public Indicator(AD5206_Channel channel, int decayFactor)
         {
             this.channel = channel;
-            currentValue = 0;
+            CurrentValue = 0;
             TargetValue = 0;
             DecayFactor = decayFactor;
         }
@@ -170,16 +158,16 @@ namespace Dashboard
         {
             if (TargetValue > CurrentValue)
             {
-                currentValue = TargetValue;
+                CurrentValue = TargetValue;
                 channel.Wiper = (byte)TargetValue;
             }
             else if(TargetValue < CurrentValue)
             {
-                int delta = (((currentValue - TargetValue) * DecayFactor) / 100);
-                currentValue = currentValue + delta;
+                int delta = (((CurrentValue - TargetValue) * DecayFactor) / 100);
+                CurrentValue = CurrentValue + delta;
             }
 
-            channel.Wiper = (byte)currentValue;
+            channel.Wiper = (byte)CurrentValue;
         }
 
     }

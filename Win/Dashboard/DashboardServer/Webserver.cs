@@ -1,34 +1,49 @@
 using System.Net;
 using System;
-public class Server
+using System.Threading;
+
+
+public class HttpEventArgs : EventArgs
+{
+    public HttpEventArgs(HttpListenerContext context)
+        : base()
+    {
+        Context = context;
+    }
+    public HttpListenerContext Context { get; private set; }
+}
+
+
+public class HttpWebServer
 {
     private static System.Threading.AutoResetEvent listenForNextRequest = new System.Threading.AutoResetEvent(false);
+    private HttpListener httpListener;
 
-    protected Server()
+    public HttpWebServer()
     {
-        _httpListener = new HttpListener();
-    }
-
-    private HttpListener _httpListener;
-
-    public string Prefix { get; set; }
-    public void Start()
-    {
-        if (string.IsNullOrEmpty(Prefix))
-            throw new InvalidOperationException("No prefix has been specified");
-        _httpListener.Prefixes.Clear();
-        _httpListener.Prefixes.Add(Prefix);
-        _httpListener.Start();
-        System.Threading.ThreadPool.QueueUserWorkItem(Listen);
-    }
-
-    internal void Stop()
-    {
-        _httpListener.Stop();
-        IsRunning = false;
+        httpListener = new HttpListener();
     }
 
     public bool IsRunning { get; private set; }
+    public HttpListenerPrefixCollection Prefixes
+    {
+        get
+        {
+            return httpListener.Prefixes;
+        }
+    }
+
+    public void Start()
+    {
+        httpListener.Start();
+        System.Threading.ThreadPool.QueueUserWorkItem(Listen);
+    }
+
+    public void Stop()
+    {
+        httpListener.Stop();
+        IsRunning = false;
+    }
 
     private void ListenerCallback(IAsyncResult result)
     {
@@ -53,17 +68,31 @@ public class Server
             listenForNextRequest.Set();
         }
         if (context == null)
+        {
             return;
-        //ProcessRequest(context);
+        }
+
+        OnProcessRequest(new HttpEventArgs(context));
     }
 
     // Loop here to begin processing of new requests. 
     private void Listen(object state)
     {
-        while (_httpListener.IsListening)
+        while (httpListener.IsListening)
         {
-            _httpListener.BeginGetContext(new AsyncCallback(ListenerCallback), _httpListener);
+            httpListener.BeginGetContext(new AsyncCallback(ListenerCallback), httpListener);
             listenForNextRequest.WaitOne();
+        }
+    }
+
+
+    public event EventHandler<HttpEventArgs> ProcessRequest;
+
+    private void OnProcessRequest(HttpEventArgs e)
+    {
+        if (ProcessRequest != null)
+        {
+            ProcessRequest(this, e);
         }
     }
 

@@ -2,33 +2,36 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dashboard.Server.Tcp;
 using System.Threading;
 using Dashboard.Server;
 
 
 namespace DashboardTest
 {
+
+    //May require perms...
+    //netsh http add urlacl url=http://+:9999/ user=DOMAIN\user
     public class Program
     {
         public static void Main(string[] args)
         {
-            var dashboardServiceProvider = new Dashboard.Server.DashboardServiceProvider { Logger = new ConsoleLogger(), DataSource = new TestDataSource()};
-            
-            TcpServer server = new TcpServer(dashboardServiceProvider, 9999);
-            server.Start();
+            var dashboardserver = new DashboardServer(999, new TestDataSource());
+            dashboardserver.Log = new ConsoleLogger();
+            dashboardserver.Start();
             Thread.Sleep(-1);
         }
     }
 
-    public class TestDataSource : ProviderDataSource
+    public class TestDataSource : DashboardDataSource
     {
         private Random r = new Random();
         private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
-        
+
+        public string ContentType { get { return "text/csv"; } }
+
         public IEnumerable<string> GetData()
         {
-            return from s in SERVERS select string.Format("{0}:{1}", s, r.Next(100));
+            return from s in SERVERS select string.Format("{0},{1}", s, r.Next(100));
         }
     }
 
