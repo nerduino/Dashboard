@@ -41,20 +41,13 @@
     <Reference Include="SecretLabs.NETMF.Hardware" />
     <Reference Include="SecretLabs.NETMF.Hardware.NetduinoPlus" />
     <Reference Include="System" />
+    <Reference Include="System.Http" />
     <Reference Include="System.IO" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\MFCommon\Hardware\Hardware.csproj">
       <Project>{95447080-F38B-4C9F-BB06-1F5ECDC9E316}</Project>
       <Name>Hardware</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\MFCommon\Network\Network.csproj">
-      <Project>{436407DD-3072-4C53-926A-B0B6314D95DB}</Project>
-      <Name>Network</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\ThirdParty\VikingErik.NetMF\VikingErik.NetMF.MicroLinq\VikingErik.NetMF.MicroLinq.csproj">
-      <Project>{FA64F384-FC2C-465B-8D9A-DA9E41F56CF6}</Project>
-      <Name>VikingErik.NetMF.MicroLinq</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 
-[Pp]rivate.cs
+[Pp]rivate*.cs
 *.csproj.*.user
 *.ncb
 *.aps

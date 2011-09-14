@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Threading;
 using Microsoft.SPOT;
+using Microsoft.SPOT.Hardware;
 using SecretLabs.NETMF.Hardware.NetduinoPlus;
+using SecretLabs.NETMF.Hardware;
 using System.IO;
 using System.Collections;
 using MFCommon.Hardware;
-using MFCommon.Network;
-using Komodex.NETMF.MicroTweet.HTTP;
+using System.Net;
 
 
 namespace Dashboard
@@ -19,28 +20,28 @@ namespace Dashboard
 
         private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
 
-       
-        private int POLL_PERIOD = 3000; 
-        private int SLEEP_PERIOD = 250;
-        private static int DECAY_FACTOR = 10;
+        private const int POLL_PERIOD = 3000;
+        private const int DECAY_FACTOR = 20;
 
         private Hashtable outputs;
-        private static Led led = new Led(Pins.ONBOARD_LED, false, 20);
+        private Led onboardLed = new Led(Pins.ONBOARD_LED, false, 50);
 
+        private Awesometer awesomeMeter;
+        
         public static void Main()
         {
             new Program().Start();
         }
 
-        private void Init()
+        private void InitIndicators()
         {
             outputs = new Hashtable();
 
-            AD5206[] ad5206 = new AD5206[]{new AD5206(Pins.GPIO_PIN_D9), new AD5206(Pins.GPIO_PIN_D10)};
+            AD5206[] ad5206 = new AD5206[] { new AD5206(Pins.GPIO_PIN_D9), new AD5206(Pins.GPIO_PIN_D10) };
 
             byte device = 0;
             byte channel = 0;
-            
+
             foreach (string server in SERVERS)
             {
                 outputs.Add(server, new Indicator(new AD5206_Channel(ad5206[device], channel++), DECAY_FACTOR));
@@ -52,26 +53,39 @@ namespace Dashboard
             }
         }
 
+        public void InitIO()
+        {
+            awesomeMeter = new Awesometer();
+            awesomeMeter.Jitter = 10;
+            awesomeMeter.Decay = 5;
+            
+            var increaseAwesomeness = new MFCommon.Hardware.Button(Pins.GPIO_PIN_D10);
+            var resetAwesomeness = new MFCommon.Hardware.Button(Pins.GPIO_PIN_D12);
+
+            increaseAwesomeness.Pressed +=new NoParamEventHandler(increaseAwesomeness_Pressed);
+            resetAwesomeness.Pressed += new NoParamEventHandler(resetAwesomeness_Pressed);
+        }
+
+        void resetAwesomeness_Pressed()
+        {
+            awesomeMeter.Reset();
+        }
+        
+        void increaseAwesomeness_Pressed()
+        {
+            awesomeMeter.Awesomeness += 5;
+        }
 
         public void Start()
         {
-            Init();
+            InitIndicators();
 
             Stopwatch stopWatch = new Stopwatch();
             while (true)
             {
-                led.Flash(3);
+                onboardLed.Flash(3);
                 FetchReadings();
-
-                stopWatch.Start();                
-                while (stopWatch.ElapsedMilliseconds < POLL_PERIOD)
-                {
-                    DoOutputDecay();
-                    led.Flash();
-                    Thread.Sleep(SLEEP_PERIOD);
-                }
-                stopWatch.Reset();
-
+                Thread.Sleep(POLL_PERIOD);
 
                 Debug.Print("Memory: " + Debug.GC(false));
             }
@@ -82,17 +96,27 @@ namespace Dashboard
         {
             try
             {
-                led.Flash(2);
+                onboardLed.Flash(2);
 
-                HttpRequest httpRequest = new HttpRequest(new HttpUri(URL));
-
-                HttpResponse response = httpRequest.GetResponse();
-                Debug.Print(response.ResponseBody);
-
-                string[] lines = response.ResponseBody.Split('\n');
-                for (int i = 0; i < lines.Length; i += 1)
+                using (HttpWebRequest request = HttpWebRequest.Create(URL) as HttpWebRequest)
                 {
-                    ProcessData(lines[i].Trim());
+                    request.KeepAlive = true;
+                    request.Method = "GET";
+
+                    using (WebResponse response = request.GetResponse())
+                    using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
+                    {
+                        string responseBody = streamReader.ReadToEnd();
+
+                        Debug.Print(responseBody);
+
+                        string[] lines = responseBody.Split('\n');
+                        for (int i = 0; i < lines.Length; i += 1)
+                        {
+                            ProcessData(lines[i].Trim());
+                        }
+                        streamReader.Close();
+                    }
                 }
             }
 
@@ -117,7 +141,7 @@ namespace Dashboard
             Debug.Print("Server: " + server + " Percent: " + percent + " Position: " + position);
 
             Indicator indicator = (Indicator)outputs[server];
-            indicator.TargetValue = position;
+            indicator.Value = position;
         }
 
 
@@ -127,47 +151,121 @@ namespace Dashboard
             {
                 try
                 {
-                    Debug.Print("Update");
                     indicator.Update();
                 }
                 catch
-                { 
+                {
                 }
             }
         }
+    }
+}
 
+class Indicator
+{
+    private AD5206_Channel channel;
+
+    public int CurrentValue { get; private set; }
+    public int Value { get; set; }
+    private int DecayFactor { get; set; }
+
+    public bool Stopped { get; set; }
+
+    public Indicator(AD5206_Channel channel, int decayFactor)
+    {
+        this.channel = channel;
+        CurrentValue = 0;
+        Value = 0;
+        DecayFactor = decayFactor;
+        Stopped = false;
+        new Thread(new ThreadStart(Loop)).Start(); ;
     }
 
-    class Indicator
+    void Loop()
     {
-        private AD5206_Channel channel;
-
-        public int CurrentValue { get; private set; }
-        public int TargetValue { get; set; }
-        private int DecayFactor { get; set; }
-
-        public Indicator(AD5206_Channel channel, int decayFactor)
+        while (!Stopped)
         {
-            this.channel = channel;
-            CurrentValue = 0;
-            TargetValue = 0;
-            DecayFactor = decayFactor;
+            Update();
+            Thread.Sleep(250);
+        }
+    }
+
+    public void Update()
+    {
+        if (Value > CurrentValue)
+        {
+            CurrentValue = Value;
+            channel.Wiper = (byte)Value;
+        }
+        else if (Value < CurrentValue)
+        {
+            int delta = (((CurrentValue - Value) * DecayFactor) / 100);
+            CurrentValue = CurrentValue + delta;
         }
 
-        public void Update()
-        {
-            if (TargetValue > CurrentValue)
-            {
-                CurrentValue = TargetValue;
-                channel.Wiper = (byte)TargetValue;
-            }
-            else if(TargetValue < CurrentValue)
-            {
-                int delta = (((CurrentValue - TargetValue) * DecayFactor) / 100);
-                CurrentValue = CurrentValue + delta;
-            }
+        channel.Wiper = (byte)CurrentValue;
+    }
 
-            channel.Wiper = (byte)CurrentValue;
+}
+
+
+class Awesometer
+{
+    PWM pwm;
+    Thread thread;
+    Random random;
+
+    public int Awesomeness { get; set; }
+    public int Jitter { get; set; }
+    public int Decay { get; set; }
+
+    bool Stopped { get; set; }
+    int Tick { get; set; }
+
+    public Awesometer()
+    {
+        pwm = new PWM(Pins.GPIO_PIN_D5);
+        random = new Random();
+        Start();
+    }
+
+    public void Start()
+    {
+        Stopped = false;
+        thread = new Thread(new ThreadStart(Loop));
+    }
+
+    public void Stop()
+    {
+        Stopped = true;
+    }
+
+    public void Reset()
+    {
+        Tick = 0;
+        Awesomeness = 0;
+    }
+
+    private void Loop()
+    {
+        while (!Stopped)
+        {
+            Tick++;
+            Update();
+            Thread.Sleep(50);
+        }
+    }
+
+    private void Update()
+    {
+        int dutyCycle = Awesomeness + random.Next(Jitter) - (Jitter / 2);
+        if (dutyCycle < 0) dutyCycle = 0;
+        if (dutyCycle > 100) dutyCycle = 100;
+
+        pwm.SetDutyCycle((uint)dutyCycle);
+        if (Tick % 10 == 0)
+        {
+            Awesomeness = Awesomeness - Decay;
         }
 
     }
