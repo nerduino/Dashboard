@@ -144,20 +144,6 @@ namespace Dashboard
             indicator.Value = position;
         }
 
-
-        private void DoOutputDecay()
-        {
-            foreach (Indicator indicator in outputs.Values)
-            {
-                try
-                {
-                    indicator.Update();
-                }
-                catch
-                {
-                }
-            }
-        }
     }
 }
 
