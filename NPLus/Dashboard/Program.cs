@@ -80,7 +80,6 @@ namespace Dashboard
         {
             InitIndicators();
 
-            Stopwatch stopWatch = new Stopwatch();
             while (true)
             {
                 onboardLed.Flash(3);
