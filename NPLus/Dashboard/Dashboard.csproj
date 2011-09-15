@@ -52,5 +52,9 @@
       <Project>{95447080-F38B-4C9F-BB06-1F5ECDC9E316}</Project>
       <Name>Hardware</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\MFCommon\Utils\Utils.csproj">
+      <Project>{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}</Project>
+      <Name>Utils</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

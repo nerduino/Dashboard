@@ -1,43 +1,67 @@
 ﻿using System;
+using System.Collections;
+using System.IO;
+using System.Net;
 using System.Threading;
+using MFCommon.Hardware;
+using MFCommon.Network;
+using MFCommon.Utils;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
-using SecretLabs.NETMF.Hardware.NetduinoPlus;
 using SecretLabs.NETMF.Hardware;
-using System.IO;
-using System.Collections;
-using MFCommon.Hardware;
-using System.Net;
-using MFCommon.Network;
-using System.Diagnostics;
+using SecretLabs.NETMF.Hardware.NetduinoPlus;
 
 
 namespace Dashboard
 {
+    public class Outputs
+    {
+        public const Cpu.Pin RED1 = Pins.GPIO_PIN_D2;
+        public const Cpu.Pin AMBER1 = Pins.GPIO_PIN_D3;
+        public const Cpu.Pin GREEN1 = Pins.GPIO_PIN_D3;
+        public const Cpu.Pin BLUE1 = Pins.GPIO_PIN_D7;
+        public const Cpu.Pin RED2 = Pins.GPIO_PIN_D8;
+        public const Cpu.Pin GREEN2 = Pins.GPIO_PIN_D9;
+        
+        public const Cpu.Pin AWESBUTTON1 = Pins.GPIO_PIN_D10;
+        public const Cpu.Pin AWESBUTTON2 = Pins.GPIO_PIN_D12;
+
+        public const Cpu.Pin CS1 = Pins.GPIO_PIN_D0;
+        public const Cpu.Pin CS2 = Pins.GPIO_PIN_D1;
+
+        public const Cpu.Pin AWESMETER1 = Pins.GPIO_PIN_D5;
+        public const Cpu.Pin AWESMETER2 = Pins.GPIO_PIN_D6;
+        
+    }
+
     public class Program
     {
         /*
          *  Static config
          */
-        //private static string URL = "ADDRESS_GOES_HERE";
         private static string URL = "http://10.82.115.238:999/";
 
         private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
 
         private const int POLL_PERIOD = 3000;
         private const int DECAY_FACTOR = 20;
+        bool buttonPressed = false;
 
         /*
          * Hardware config
          * 
          */
         private Led onboardLed = new Led(Pins.ONBOARD_LED, false, 50);
+
+        private Led[] lamps;
         private Awesometer awesomeMeter;
 
         /*
          * Other fields
          */
         private Hashtable outputs;
+        private MFCommon.Hardware.Button resetAwesomeness;
+        private MFCommon.Hardware.Button increaseAwesomeness;
 
         public static void Main()
         {
@@ -50,6 +74,10 @@ namespace Dashboard
         public void Start()
         {
             InitIndicators();
+            InitLamps();
+            InitMeters();
+
+            DoPOST();
 
             while (true)
             {
@@ -61,7 +89,41 @@ namespace Dashboard
             }
         }
 
+        private void DoPOST()
+        {
 
+            onboardLed.Flash(5);
+
+            foreach(Led lamp in lamps) {
+                lamp.State = true;
+            }
+            foreach (Indicator indicator in outputs)
+            {
+                indicator.Value = 100;
+            }
+            awesomeMeter.Awesomeness = 100;
+            awesomeMeter.Decay = 0;
+            awesomeMeter.Jitter = 0;
+
+            Thread.Sleep(2000);
+            
+            foreach (Led lamp in lamps)
+            {
+                lamp.State = false;
+            }
+            foreach (Indicator indicator in outputs)
+            {
+                indicator.Value = 0;
+            }
+
+            awesomeMeter.Awesomeness = 0;
+            awesomeMeter.Jitter = 10;
+            awesomeMeter.Decay = 5;
+
+            onboardLed.Flash(5);
+        }
+
+     
         private void FetchReadings()
         {
             try
@@ -72,6 +134,8 @@ namespace Dashboard
                 {
                     request.KeepAlive = true;
                     request.Method = "GET";
+                    request.Timeout = 10000;
+                    request.ReadWriteTimeout = 15000;
 
                     using (WebResponse response = request.GetResponse())
                     using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
@@ -114,11 +178,12 @@ namespace Dashboard
             indicator.Value = position;
         }
 
+
         private void InitIndicators()
         {
             outputs = new Hashtable();
 
-            AD5206[] ad5206 = new AD5206[] { new AD5206(Pins.GPIO_PIN_D9), new AD5206(Pins.GPIO_PIN_D10) };
+            AD5206[] ad5206 = new AD5206[] { new AD5206(Outputs.CS1), new AD5206(Outputs.CS2) };
 
             byte device = 0;
             byte channel = 0;
@@ -134,28 +199,62 @@ namespace Dashboard
             }
         }
 
-        private void InitIO()
+        private void InitLamps()
         {
-            awesomeMeter = new Awesometer();
+            lamps = new Led[6] {
+                new Led(Outputs.RED1, false),
+                new Led(Outputs.AMBER1, false),
+                new Led(Outputs.GREEN1, false),
+                new Led(Outputs.BLUE1, false),
+                new Led(Outputs.RED2, false),
+                new Led(Outputs.GREEN2, false)
+            };    
+        }
+
+        private void InitMeters()
+        {
+            awesomeMeter = new Awesometer(Outputs.AWESMETER1);
             awesomeMeter.Jitter = 10;
             awesomeMeter.Decay = 5;
 
-            var increaseAwesomeness = new MFCommon.Hardware.Button(Pins.GPIO_PIN_D10);
-            var resetAwesomeness = new MFCommon.Hardware.Button(Pins.GPIO_PIN_D12);
+            increaseAwesomeness = new MFCommon.Hardware.Button(Outputs.AWESBUTTON1);
+            resetAwesomeness = new MFCommon.Hardware.Button(Outputs.AWESBUTTON2);
 
             increaseAwesomeness.Pressed += new NoParamEventHandler(increaseAwesomeness_Pressed);
             resetAwesomeness.Pressed += new NoParamEventHandler(resetAwesomeness_Pressed);
+
         }
+
 
         void resetAwesomeness_Pressed()
         {
-            awesomeMeter.Reset();
+            if (increaseAwesomeness.IsPressed)
+            {
+                BothButtonsPressed();
+            }
+            else
+            {
+                awesomeMeter.Reset();
+            }
         }
 
         void increaseAwesomeness_Pressed()
         {
-            awesomeMeter.Awesomeness += 5;
+            if (resetAwesomeness.IsPressed)
+            {
+                BothButtonsPressed();
+            }
+            else
+            {
+                awesomeMeter.Awesomeness += 5;
+            }
         }
+
+        private void BothButtonsPressed()
+        {
+            DoPOST();
+        }
+
     }
 
 
@@ -193,25 +292,27 @@ namespace Dashboard
             if (Value > CurrentValue)
             {
                 CurrentValue = Value;
-                channel.Wiper = (byte)CurrentValue;
-                Log.Debug("Update wiper to "+channel.Wiper+" channel "+channel.Channel);
+                channel.Wiper = (byte)percentToRange(CurrentValue);
+                Log.Debug("Update wiper to " + channel.Wiper + " channel " + channel.Channel);
 
             }
             else if (Value < CurrentValue)
             {
                 int delta = (((CurrentValue - Value) * DecayFactor) / 100);
                 CurrentValue = CurrentValue + delta;
-                channel.Wiper = (byte)CurrentValue;
+                channel.Wiper = (byte)percentToRange(CurrentValue);
                 Log.Debug("Update wiper to " + channel.Wiper + " channel " + channel.Channel);
             }
             else
             {
                 //do nothing.
             }
-
-            
         }
 
+        private int percentToRange(int percent)
+        {
+            return (255 * percent) / 100;
+        }
     }
 
 
@@ -228,9 +329,9 @@ namespace Dashboard
         bool Stopped { get; set; }
         int Tick { get; set; }
 
-        public Awesometer()
+        public Awesometer(Cpu.Pin pin)
         {
-            pwm = new PWM(Pins.GPIO_PIN_D5);
+            pwm = new PWM(pin);
             random = new Random();
             Start();
         }
@@ -273,16 +374,6 @@ namespace Dashboard
             {
                 Awesomeness = Awesomeness - Decay;
             }
-
-        }
-
-    }
-
-    public class Log
-    {
-        public static void Debug(string message)
-        {
-            Microsoft.SPOT.Debug.Print(message);
         }
     }
 }
