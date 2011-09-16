@@ -45,7 +45,7 @@ namespace Dashboard
 
         private const int POLL_PERIOD = 3000;
         private const int DECAY_FACTOR = 20;
-        bool buttonPressed = false;
+        
 
         /*
          * Hardware config
@@ -252,7 +252,7 @@ namespace Dashboard
 
         private void BothButtonsPressed()
         {
-            DoPOST();
+            PowerState.RebootDevice(true);
         }
 
     }
