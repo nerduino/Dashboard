@@ -31,6 +31,18 @@
   </PropertyGroup>
   <Import Project="$(NetMfTargetsBaseDir)$(TargetFrameworkVersion)\CSharp.Targets" />
   <ItemGroup>
+    <Compile Include="..\..\..\MFCommon\Hardware\AD5206.cs">
+      <Link>AD5206.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\MFCommon\Hardware\Button.cs">
+      <Link>Button.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\MFCommon\Hardware\Led.cs">
+      <Link>Led.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\MFCommon\Hardware\SharedSPI.cs">
+      <Link>SharedSPI.cs</Link>
+    </Compile>
     <Compile Include="..\..\..\MFCommon\Network\NTP.cs">
       <Link>NTP.cs</Link>
     </Compile>
@@ -46,15 +58,5 @@
     <Reference Include="System" />
     <Reference Include="System.Http" />
     <Reference Include="System.IO" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\MFCommon\Hardware\Hardware.csproj">
-      <Project>{95447080-F38B-4C9F-BB06-1F5ECDC9E316}</Project>
-      <Name>Hardware</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\MFCommon\Utils\Utils.csproj">
-      <Project>{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}</Project>
-      <Name>Utils</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

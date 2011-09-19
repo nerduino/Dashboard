@@ -5,13 +5,10 @@ using System.Net;
 using System.Threading;
 using MFCommon.Hardware;
 using MFCommon.Network;
-using MFCommon.Utils;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using SecretLabs.NETMF.Hardware;
 using SecretLabs.NETMF.Hardware.NetduinoPlus;
-using Utils;
-
 
 namespace Dashboard
 {
@@ -19,19 +16,22 @@ namespace Dashboard
     {
         public const Cpu.Pin RED1 = Pins.GPIO_PIN_D2;
         public const Cpu.Pin AMBER1 = Pins.GPIO_PIN_D3;
-        public const Cpu.Pin GREEN1 = Pins.GPIO_PIN_D3;
+        public const Cpu.Pin GREEN1 = Pins.GPIO_PIN_D4;
         public const Cpu.Pin BLUE1 = Pins.GPIO_PIN_D7;
         public const Cpu.Pin RED2 = Pins.GPIO_PIN_D8;
         public const Cpu.Pin GREEN2 = Pins.GPIO_PIN_D9;
         
         public const Cpu.Pin AWESBUTTON1 = Pins.GPIO_PIN_D10;
-        public const Cpu.Pin AWESBUTTON2 = Pins.GPIO_PIN_D12;
+        public const Cpu.Pin AWESBUTTON2 = Pins.GPIO_PIN_D6;
 
         public const Cpu.Pin CS1 = Pins.GPIO_PIN_D0;
         public const Cpu.Pin CS2 = Pins.GPIO_PIN_D1;
 
         public const Cpu.Pin AWESMETER1 = Pins.GPIO_PIN_D5;
-        public const Cpu.Pin AWESMETER2 = Pins.GPIO_PIN_D6;
+        
+        private const Cpu.Pin MOSI = Pins.GPIO_PIN_D11;
+        private const Cpu.Pin MISO= Pins.GPIO_PIN_D12;
+        private const Cpu.Pin SPCK = Pins.GPIO_PIN_D13;
         
     }
 
@@ -45,7 +45,7 @@ namespace Dashboard
         private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
 
         private const int POLL_PERIOD = 3000;
-        private const int DECAY_FACTOR = 20;
+        private const int DECAY_FACTOR = 5;
         
 
         /*
@@ -66,10 +66,9 @@ namespace Dashboard
 
         public static void Main()
         {
-            Logger.Threshold = LogLevel.DEBUG;
-
+           
             Microsoft.SPOT.Hardware.Utility.SetLocalTime(NTP.NTPTime(8));
-            Logger.Debug("Clock Set");
+            Debug.Print("Clock Set");
 
             new Program().Start();
         }
@@ -80,7 +79,11 @@ namespace Dashboard
             InitLamps();
             InitMeters();
 
+            Debug.Print("Init Complete.");
+            Debug.Print("Memory: " + Debug.GC(false));
+
             DoPOST();
+            Debug.Print("POST Complete.");
 
             while (true)
             {
@@ -88,7 +91,7 @@ namespace Dashboard
                 FetchReadings();
                 Thread.Sleep(POLL_PERIOD);
 
-                Logger.Debug("Memory: " + Debug.GC(false));
+                Debug.Print("Memory: " + Debug.GC(false));
             }
         }
 
@@ -100,7 +103,7 @@ namespace Dashboard
             foreach(Led lamp in lamps) {
                 lamp.State = true;
             }
-            foreach (Indicator indicator in outputs)
+            foreach (Indicator indicator in outputs.Values)
             {
                 indicator.Value = 100;
             }
@@ -114,7 +117,7 @@ namespace Dashboard
             {
                 lamp.State = false;
             }
-            foreach (Indicator indicator in outputs)
+            foreach (Indicator indicator in outputs.Values)
             {
                 indicator.Value = 0;
             }
@@ -145,7 +148,7 @@ namespace Dashboard
                     {
                         string responseBody = streamReader.ReadToEnd();
 
-                        Logger.Debug(responseBody);
+                        Debug.Print(responseBody);
 
                         string[] lines = responseBody.Split('\n');
                         for (int i = 0; i < lines.Length; i += 1)
@@ -159,7 +162,7 @@ namespace Dashboard
 
             catch (Exception e)
             {
-                Logger.Debug("Exception: {0}", e.Message);
+                Debug.Print("Exception: "+e.Message);
             }
         }
 
@@ -175,7 +178,7 @@ namespace Dashboard
             percent = int.Parse(fields[1]);
             position = (percent * 255) / 100;
 
-            Logger.Debug("Server: {0} Percent: {1} Position: {2}", server, percent, position);
+            Debug.Print("Server: " + server + " Percent: " + percent + " Position: " + position);
 
             Indicator indicator = (Indicator)outputs[server];
             indicator.Value = position;
@@ -204,14 +207,15 @@ namespace Dashboard
 
         private void InitLamps()
         {
-            lamps = new Led[6] {
-                new Led(Outputs.RED1, false),
-                new Led(Outputs.AMBER1, false),
-                new Led(Outputs.GREEN1, false),
-                new Led(Outputs.BLUE1, false),
-                new Led(Outputs.RED2, false),
-                new Led(Outputs.GREEN2, false)
-            };    
+                Led red1 = new Led(Outputs.RED1, false);
+                Led amber1 = new Led(Outputs.AMBER1, false);
+                Led green1 = new Led(Outputs.GREEN1, false);
+                Led blue1 = new Led(Outputs.BLUE1, false);
+                Led red2 = new Led(Outputs.RED2, false);
+                Led green2 = new Led(Outputs.GREEN2, false);
+
+            lamps = new Led[6] { red1, amber1, green1, blue1, red2, green2};
+                  
         }
 
         private void InitMeters()
@@ -296,15 +300,19 @@ namespace Dashboard
             {
                 CurrentValue = Value;
                 channel.Wiper = (byte)percentToRange(CurrentValue);
-                Logger.Debug("Update wiper to {0} channel {1}", channel.Wiper, channel.Channel);
+                Debug.Print("Update wiper to "+channel.Wiper+" channel "+ channel.Channel);
 
             }
             else if (Value < CurrentValue)
             {
-                int delta = (((CurrentValue - Value) * DecayFactor) / 100);
-                CurrentValue = CurrentValue + delta;
+
+                CurrentValue = CurrentValue - DecayFactor;
+                if (CurrentValue < 0)
+                {
+                    CurrentValue = 0;
+                }
                 channel.Wiper = (byte)percentToRange(CurrentValue);
-                Logger.Debug("Update wiper to {0} channel {1}", channel.Wiper, channel.Channel);
+                Debug.Print("Decay wiper to " + channel.Wiper + " channel " + channel.Channel);
             }
             else
             {
