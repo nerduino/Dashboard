@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardware", "..\..\MFCommon\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "..\..\MFCommon\Utils\Utils.csproj", "{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetMf.CommonExtensions", "..\..\ThirdParty\MFExtensions\NetMf.CommonExtensions\NetMf.CommonExtensions.csproj", "{58F72289-F396-4CCA-8120-B7179C05FF99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD99E5C2-BE04-4846-94E0-F9C60E9BB264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58F72289-F396-4CCA-8120-B7179C05FF99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58F72289-F396-4CCA-8120-B7179C05FF99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58F72289-F396-4CCA-8120-B7179C05FF99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58F72289-F396-4CCA-8120-B7179C05FF99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -10,6 +10,7 @@ using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using SecretLabs.NETMF.Hardware;
 using SecretLabs.NETMF.Hardware.NetduinoPlus;
+using Utils;
 
 
 namespace Dashboard
@@ -65,8 +66,10 @@ namespace Dashboard
 
         public static void Main()
         {
+            Logger.Threshold = LogLevel.DEBUG;
+
             Microsoft.SPOT.Hardware.Utility.SetLocalTime(NTP.NTPTime(8));
-            Log.Debug("The time is " + DateTime.Now.ToLocalTime());
+            Logger.Debug("Clock Set");
 
             new Program().Start();
         }
@@ -85,7 +88,7 @@ namespace Dashboard
                 FetchReadings();
                 Thread.Sleep(POLL_PERIOD);
 
-                Log.Debug("Memory: " + Debug.GC(false));
+                Logger.Debug("Memory: " + Debug.GC(false));
             }
         }
 
@@ -142,7 +145,7 @@ namespace Dashboard
                     {
                         string responseBody = streamReader.ReadToEnd();
 
-                        Log.Debug(responseBody);
+                        Logger.Debug(responseBody);
 
                         string[] lines = responseBody.Split('\n');
                         for (int i = 0; i < lines.Length; i += 1)
@@ -156,7 +159,7 @@ namespace Dashboard
 
             catch (Exception e)
             {
-                Log.Debug("Exception: " + e.Message);
+                Logger.Debug("Exception: {0}", e.Message);
             }
         }
 
@@ -172,7 +175,7 @@ namespace Dashboard
             percent = int.Parse(fields[1]);
             position = (percent * 255) / 100;
 
-            Log.Debug("Server: " + server + " Percent: " + percent + " Position: " + position);
+            Logger.Debug("Server: {0} Percent: {1} Position: {2}", server, percent, position);
 
             Indicator indicator = (Indicator)outputs[server];
             indicator.Value = position;
@@ -293,7 +296,7 @@ namespace Dashboard
             {
                 CurrentValue = Value;
                 channel.Wiper = (byte)percentToRange(CurrentValue);
-                Log.Debug("Update wiper to " + channel.Wiper + " channel " + channel.Channel);
+                Logger.Debug("Update wiper to {0} channel {1}", channel.Wiper, channel.Channel);
 
             }
             else if (Value < CurrentValue)
@@ -301,7 +304,7 @@ namespace Dashboard
                 int delta = (((CurrentValue - Value) * DecayFactor) / 100);
                 CurrentValue = CurrentValue + delta;
                 channel.Wiper = (byte)percentToRange(CurrentValue);
-                Log.Debug("Update wiper to " + channel.Wiper + " channel " + channel.Channel);
+                Logger.Debug("Update wiper to {0} channel {1}", channel.Wiper, channel.Channel);
             }
             else
             {
