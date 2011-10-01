@@ -56,13 +56,14 @@ namespace Dashboard.Server
             byte[] buff; 
             try
             {
-                    buff = Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, datasource.GetData()));
+                    var data = datasource.GetData();
+                    buff = Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, data));
                     response.StatusCode = (int)HttpStatusCode.OK;
                     response.StatusDescription = "OK";
             }
-            catch
+            catch(Exception ex)
             {
-                buff = Encoding.UTF8.GetBytes("");
+                buff = Encoding.UTF8.GetBytes(ex.Message);
                 response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 response.StatusDescription = "Internal Server Error";
             }

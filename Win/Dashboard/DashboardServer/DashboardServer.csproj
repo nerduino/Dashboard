@@ -103,6 +103,7 @@
     <Compile Include="Prototypes\Win32_Process.cs" />
     <Compile Include="Prototypes\Win32_Processor.cs" />
     <Compile Include="Prototypes\Win32_UserAccount.cs" />
+    <Compile Include="Web.cs" />
     <Compile Include="Webserver.cs" />
   </ItemGroup>
   <ItemGroup>

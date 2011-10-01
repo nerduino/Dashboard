@@ -31,9 +31,18 @@ namespace DashboardTest
 
         public IEnumerable<string> GetData()
         {
-            return from s in SERVERS select string.Format("{0},{1}", s, r.Next(100));
+            PrivateDataSource ds = new PrivateDataSource();
+
+            return ds.GetJMXStats();
         }
+
+        public IEnumerable<string> GetFakeCPUData() {
+           return (from s in SERVERS select string.Format("{0},{1}", s, r.Next(100)));
+        }
+
     }
+
+
 
     public class ConsoleLogger : Logger
     {
