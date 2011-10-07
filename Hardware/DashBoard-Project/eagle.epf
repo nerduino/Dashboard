@@ -338,7 +338,7 @@ UsedLibrary="DashboardParts.lbr"
 
 [Win_1]
 Type="Schematic Editor"
-Loc="50 50 649 449"
+Loc="25 25 624 424"
 State=0
 Number=2
 File="HV/Dashboard HV.sch"
