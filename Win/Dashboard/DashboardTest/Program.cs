@@ -24,20 +24,13 @@ namespace DashboardTest
 
     public class TestDataSource : DashboardDataSource
     {
-        private Random r = new Random();
-        private static string[] SERVERS = new string[] { "000", "211", "212", "221", "222", "231", "232", "241", "242", "251", "252" };
 
         public string ContentType { get { return "text/csv"; } }
 
         public IEnumerable<string> GetData()
         {
             PrivateDataSource ds = new PrivateDataSource();
-
-            return ds.GetJMXStats();
-        }
-
-        public IEnumerable<string> GetFakeCPUData() {
-           return (from s in SERVERS select string.Format("{0},{1}", s, r.Next(100)));
+            return ds.GetData();
         }
 
     }
